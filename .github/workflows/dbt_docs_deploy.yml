@@ -9,6 +9,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: northwind
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -24,24 +39,31 @@ jobs:
     - name: Set up dbt profile
       run: |
         mkdir -p ~/.dbt
-        echo "
-        northwind:
-          target: prod
-          outputs:
-            prod:
-              type: postgres
-              host: ${{ secrets.DB_HOST_PROD }}
-              port: ${{ secrets.DB_PORT_PROD }}
-              user: ${{ secrets.DB_USER_PROD }}
-              password: ${{ secrets.DB_PASS_PROD }}
-              dbname: ${{ secrets.DB_NAME_PROD }}
-              schema: ${{ secrets.DB_SCHEMA_PROD }}
-              threads: ${{ secrets.DB_THREADS_PROD }}
-        " > ~/.dbt/profiles.yml
+        cat <<EOF > ~/.dbt/profiles.yml
+northwind:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      dbname: northwind
+      schema: public
+      threads: 1
+EOF
 
-    - name: Install dependencies and generate docs
+    - name: Install dependencies and load initial SQL
+      run: |
+        sudo apt-get update
+        sudo apt-get install postgresql-client -y
+        psql -h localhost -U postgres -d northwind -f northwind/scripts/northwind.sql
+
+    - name: Generate dbt docs
       run: |
         cd northwind
+        dbt deps
         dbt docs generate
 
     - name: Deploy to GitHub Pages
