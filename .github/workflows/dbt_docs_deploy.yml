@@ -55,6 +55,8 @@ jobs:
         EOF
 
     - name: Install dependencies and load initial SQL
+      env:
+        PGPASSWORD: postgres
       run: |
         sudo apt-get update
         sudo apt-get install postgresql-client -y
