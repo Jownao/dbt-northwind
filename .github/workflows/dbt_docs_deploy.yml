@@ -60,7 +60,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install postgresql-client -y
-        psql -h localhost -U postgres -d northwind -f northwind/scripts/northwind.sql
+        psql -h localhost -U postgres -d northwind -f ./northwind.sql
 
     - name: Generate dbt docs
       run: |
